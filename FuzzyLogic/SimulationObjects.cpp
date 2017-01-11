@@ -145,6 +145,9 @@ float Agent::checkEatingDesirable()
 	float foodRangeFar = fuzzyEngine.farAway->getMembership(foodRange);
 	//is this a very desirable action?
 	float veryDesirableValue = Fuzzy::OR(Fuzzy::AND(foodRangeClose,hungry),veryHungry);
+	veryDesirableValue = Fuzzy::OR(veryDesirableValue, veryHungry);
+	//veryDesirableValue = Fuzzy::OR(Fuzzy::AND(foodRangeMedium, hungry), veryHungry);
+	//veryDesirableValue = Fuzzy::AND(foodRangeFar, veryHungry);
 	//is it a desirable action?
 	float desirableValue = Fuzzy::AND(Fuzzy::NOT(foodRangeFar),hungry);
 	//is in undesirable?  In this case if we are full it's undesirable
@@ -179,6 +182,9 @@ float Agent::checkSleepDesirable()
 	float caveFar = fuzzyEngine.farAway->getMembership(caveRange);
 	//is this a very desirable action?
 	float veryDesirableValue = Fuzzy::OR(Fuzzy::AND(caveClose,awake),tired);
+	veryDesirableValue = Fuzzy::OR(veryDesirableValue, tired);
+	//veryDesirableValue = Fuzzy::OR(Fuzzy::AND(caveMedium, awake), tired);
+	//veryDesirableValue = Fuzzy::AND(caveFar, tired);
 	//is it a desirable action?
 	float desirableValue = Fuzzy::AND(Fuzzy::NOT(caveFar),tired);
 	//is in undesirable?  In this case if we are full it's undesirable
@@ -215,8 +221,10 @@ float Agent::checkDrinkingDesirable()
 	//is this a very desirable action?
 	float veryDesirableValue = Fuzzy::OR(Fuzzy::AND(waterRangeClose,thirsty),veryThirsty);
 	veryDesirableValue= Fuzzy::OR(veryDesirableValue,weekFromThirst);
+	//veryDesirableValue = Fuzzy::OR(Fuzzy::AND(waterRangeMedium, thirsty), veryThirsty);
+	//veryDesirableValue = Fuzzy::AND(waterRangeFar, veryThirsty);
 	//is it a desirable action?
-	float desirableValue = Fuzzy::AND(Fuzzy::NOT(waterRangeClose),thirsty);
+	float desirableValue = Fuzzy::AND(Fuzzy::NOT(waterRangeFar),thirsty);
 	//is in undesirable?  In this case if we are full it's undesirable
 	float undesirableValue = notThirsty;
 	//set up our maximum values readt to defuzzify
