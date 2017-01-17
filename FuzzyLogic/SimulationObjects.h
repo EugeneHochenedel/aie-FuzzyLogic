@@ -8,6 +8,7 @@ enum WorldObjectType
 	WATER,
 	FOOD,
 	CAVE,
+	ENEMY,
 };
 
 using namespace std;
@@ -51,6 +52,12 @@ class Cave:public BaseResource
 	Cave(glm::vec2 position);
 };
 
+class Enemy : public BaseResource
+{
+public:
+	Enemy(glm::vec2 position);
+};
+
 class BaseAgent:public WorldObject
 {
 public:
@@ -60,6 +67,7 @@ public:
 	float tiredness;
 	float food;
 	float water;
+	float enemy;
 };
 
 class Agent : public BaseAgent
@@ -73,9 +81,23 @@ public:
 	float checkEatingDesirable();
 	float checkSleepDesirable();
 	float checkDrinkingDesirable();
+	float checkEnemyDesirable();
 	glm::vec2 gotoFood(float desirability,float delta);
 	glm::vec2 gotoCave(float desirability,float delta);
 	glm::vec2 gotoWater(float desirability,float delta);
+	glm::vec2 avoidEnemy(float desirability,float delta);
+};
+
+class Enemys : public BaseAgent
+{
+public:
+	float maxSpeed;
+	virtual void update(float delta);
+	virtual void draw();
+
+	Enemys(glm::vec2 position);
+	float checkAgentDesirable();
+	glm::vec2 gotoAgent(float desirability, float delta);
 };
 
 class WorldController

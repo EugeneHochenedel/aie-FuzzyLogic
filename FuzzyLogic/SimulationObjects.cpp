@@ -35,9 +35,14 @@ Food::Food(glm::vec2 position):BaseResource(position,glm::vec4(0,1,0,1),20)
 	type = FOOD;
 }
 
-Cave::Cave(glm::vec2 position):BaseResource(position,glm::vec4(0,0,0,1),20)
+Cave::Cave(glm::vec2 position):BaseResource(position,glm::vec4(1,0,0,1),20)
 {
 	type = CAVE;
+}
+
+Enemy::Enemy(glm::vec2 position):BaseResource(position,glm::vec4(0,0,0,1),20)
+{
+	type = ENEMY;
 }
 
 Agent::Agent(glm::vec2 position) : BaseAgent(position, glm::vec4(1, 1, 0, 1), 20)
@@ -48,6 +53,12 @@ Agent::Agent(glm::vec2 position) : BaseAgent(position, glm::vec4(1, 1, 0, 1), 20
 	type = SIMPLE_AI;
 	maxSpeed = 150;
 };
+
+Enemys::Enemys(glm::vec2 position) : BaseAgent(position, glm::vec4(0, 0, 0, 1),20)
+{
+	type = SIMPLE_AI;
+	maxSpeed = 150;
+}
 
 void Agent::drawBar(float value, int index)
 {
@@ -153,7 +164,7 @@ float Agent::checkEatingDesirable()
 	float desirableValue = Fuzzy::OR(Fuzzy::AND(foodRangeMedium, hungry), Fuzzy::AND(foodRangeFar, veryHungry));
 
 	//is in undesirable?  In this case if we are full it's undesirable
-	/*Original:*/	//float undesirableValue = full;
+	/*Original:*/ //float undesirableValue = full;
 	float undesirableValue = Fuzzy::OR(full, Fuzzy::AND(foodRangeFar, hungry));
 
 	//set up our maximum values ready to defuzzify
@@ -194,7 +205,7 @@ float Agent::checkSleepDesirable()
 	float desirableValue = Fuzzy::OR(Fuzzy::AND(caveMedium, awake), Fuzzy::AND(caveFar, tired));
 	
 	//is in undesirable?  In this case if we are full it's undesirable
-	/*Original:*/	//float undesirableValue = active;
+	/*Original:*/ //float undesirableValue = active;
 	float undesirableValue = Fuzzy::OR(active, Fuzzy::AND(caveFar, awake));
 
 	//set up our maximum values readt to defuzzify
@@ -249,7 +260,26 @@ float Agent::checkDrinkingDesirable()
 	desire /= (.1f + veryDesirableValue + desirableValue + undesirableValue);
 	//return our final desire
 	return desire;
+}
 
+float Agent::checkEnemyDesirable()
+{
+	float desire = 0; 
+	float enemyRange = findNearestResource(ENEMY);
+	float enemyClose = fuzzyEngine.veryNear->getMembership(enemyRange);
+	float enemyMedium = fuzzyEngine.mediumRange->getMembership(enemyRange);
+	float enemyFar = fuzzyEngine.farAway->getMembership(enemyRange);
+
+	float veryDesirableValue = enemyClose;
+	float desirableValue = enemyMedium;
+	float undesirableValue = enemyFar;
+
+	float maxVeryDesirable = fuzzyEngine.veryDesirable->getMaxMembership();
+	float maxDesirable = fuzzyEngine.desirable->getMaxMembership();
+	float maxUndesirable = fuzzyEngine.undesirable->getMaxMembership();
+	desire = maxVeryDesirable*veryDesirableValue + maxDesirable* desirableValue + maxUndesirable*undesirableValue;
+	desire /= (.1f + veryDesirableValue + desirableValue + undesirableValue);
+	return desire;
 }
 
 glm::vec2 Agent::gotoFood(float desirability, float delta)
@@ -270,17 +300,24 @@ glm::vec2 Agent::gotoWater(float desirability, float delta)
 	return velocity;
 }
 
+glm::vec2 Agent::avoidEnemy(float desirability, float delta)
+{
+	glm::vec2 velocity = -glm::normalize(findResourceVector(ENEMY) - this->position) * delta *(1 + desirability) * maxSpeed;
+	return velocity;
+}
+
 void Agent::update(float delta)
 {
 	float eatDesirability = checkEatingDesirable();
 	float sleepDesirability = checkSleepDesirable();
 	float drinkDesirability = checkDrinkingDesirable();
+	float avoidanceDesirability = checkEnemyDesirable();
 	glm::vec2 velocity;
 	if(eatDesirability>sleepDesirability && eatDesirability>drinkDesirability)
 	{
 		velocity= gotoFood(eatDesirability,delta);
 	}
-	else if(sleepDesirability>drinkDesirability)
+	else if(sleepDesirability>drinkDesirability && sleepDesirability>eatDesirability)
 	{
 		velocity = gotoCave(sleepDesirability,delta);
 	}
@@ -288,6 +325,10 @@ void Agent::update(float delta)
 	{
 		velocity = gotoWater(drinkDesirability,delta);
 	}
+	/*if (avoidanceDesirability > 0.1f) 
+	{
+		velocity += avoidEnemy(avoidanceDesirability, delta);
+	}*/
 	position += velocity;
 	//if we are near water then drink
 	if(findNearestResource(WATER) <2)
@@ -352,6 +393,19 @@ void WorldController::update(float delta)
 {
 	for(auto worldObject:worldObjects)
 	{
+		if (worldObject->type == ENEMY)
+		{
+			WorldObject* agent;
+			for (auto wO : worldObjects)
+			{
+				if (wO->type == SIMPLE_AI)
+				{
+					agent = wO;
+					break;
+				}
+			}
+			worldObject->position += 1.0f * glm::normalize(agent->position - worldObject->position);
+		}
 		worldObject->update(delta);
 	}
 }
